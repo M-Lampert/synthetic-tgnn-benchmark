@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     # get data for training, validation and testing
     node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data = \
-        get_link_prediction_data(dataset_name=args.dataset_name, val_ratio=args.val_ratio, test_ratio=args.test_ratio)
+        get_link_prediction_data(dataset_name=args.dataset_name, val_ratio=args.val_ratio, test_ratio=args.test_ratio, shuffle_order=args.shuffle_order, arange_timestamps=args.arange_timestamps)
 
     # initialize training neighbor sampler to retrieve temporal graph
     train_neighbor_sampler = get_neighbor_sampler(data=train_data, sample_neighbor_strategy=args.sample_neighbor_strategy,
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         set_random_seed(seed=run)
 
         args.seed = run
-        args.save_model_name = f'{args.model_name}_seed{args.seed}'
+        args.save_model_name = f'{args.model_name}_seed{args.seed}' + ("_aranged_timestamps" if args.arange_timestamps else "") + ("_shuffle_order" if args.shuffle_order else "")
 
         # set up logger
         logging.basicConfig(level=logging.INFO)

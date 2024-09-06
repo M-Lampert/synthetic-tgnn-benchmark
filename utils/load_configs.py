@@ -11,8 +11,10 @@ def get_link_prediction_args(is_evaluation: bool = False):
     """
     # arguments
     parser = argparse.ArgumentParser('Interface for the link prediction task')
-    parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='wikipedia',
-                        choices=['wikipedia', 'reddit', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci', 'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts'])
+    parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='periodic',
+                        choices=["periodic", "burst", "triadic", "bipartite"])
+    parser.add_argument('--shuffle_order', action='store_true', default=False, help='whether to shuffle the time order of the edges')
+    parser.add_argument('--arange_timestamps', action='store_true', default=False, help='whether to rearange the timestamps')
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
     parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model, note that EdgeBank is only applicable for evaluation',
                         choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'DyGFormer'])
@@ -142,7 +144,6 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
                 args.edge_bank_memory_mode = 'time_window_memory'
                 args.time_window_mode = 'repeat_interval'
             else:
-                assert args.dataset_name == 'SocialEvo'
                 args.edge_bank_memory_mode = 'repeat_threshold_memory'
         elif args.negative_sample_strategy == 'historical':
             if args.dataset_name in ['uci', 'CanParl', 'USLegis']:
@@ -152,7 +153,6 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
                 args.edge_bank_memory_mode = 'time_window_memory'
                 args.time_window_mode = 'repeat_interval'
             else:
-                assert args.dataset_name in ['wikipedia', 'reddit', 'SocialEvo', 'Flights']
                 args.edge_bank_memory_mode = 'repeat_threshold_memory'
         else:
             assert args.negative_sample_strategy == 'inductive'
@@ -163,8 +163,6 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
                 args.edge_bank_memory_mode = 'time_window_memory'
                 args.time_window_mode = 'repeat_interval'
             else:
-                assert args.dataset_name in ['wikipedia', 'reddit', 'mooc', 'lastfm', 'myket', 'enron',
-                                             'SocialEvo', 'Flights', 'CanParl', 'UNtrade', 'Contacts']
                 args.edge_bank_memory_mode = 'repeat_threshold_memory'
     elif args.model_name == 'TCL':
         args.num_neighbors = 20

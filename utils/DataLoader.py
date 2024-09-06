@@ -64,12 +64,14 @@ class Data:
         self.num_unique_nodes = len(self.unique_node_ids)
 
 
-def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float):
+def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float, shuffle_order: bool = False, arange_timestamps: bool = False):
     """
     generate data for link prediction task (inductive & transductive settings)
     :param dataset_name: str, dataset name
     :param val_ratio: float, validation data ratio
     :param test_ratio: float, test data ratio
+    :param shuffle_order: bool, whether to shuffle the order of edge occurrence in the data
+    :param arange_timestamps: bool, whether to rearange the timestamps
     :return: node_raw_features, edge_raw_features, (np.ndarray),
             full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data, (Data object)
     """
@@ -100,8 +102,6 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
     edge_ids = graph_df.idx.values.astype(np.longlong)
     labels = graph_df.label.values
 
-    full_data = Data(src_node_ids=src_node_ids, dst_node_ids=dst_node_ids, node_interact_times=node_interact_times, edge_ids=edge_ids, labels=labels)
-
     # the setting of seed follows previous works
     random.seed(2020)
 
@@ -124,12 +124,8 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
     # for train data, we keep edges happening before the validation time which do not involve any new node, used for inductiveness
     train_mask = np.logical_and(node_interact_times <= val_time, observed_edges_mask)
 
-    train_data = Data(src_node_ids=src_node_ids[train_mask], dst_node_ids=dst_node_ids[train_mask],
-                      node_interact_times=node_interact_times[train_mask],
-                      edge_ids=edge_ids[train_mask], labels=labels[train_mask])
-
     # define the new nodes sets for testing inductiveness of the model
-    train_node_set = set(train_data.src_node_ids).union(train_data.dst_node_ids)
+    train_node_set = set(src_node_ids[train_mask]).union(dst_node_ids[train_mask])
     assert len(train_node_set & new_test_node_set) == 0
     # new nodes that are not in the training set
     new_node_set = node_set - train_node_set
@@ -142,6 +138,29 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
                                             for src_node_id, dst_node_id in zip(src_node_ids, dst_node_ids)])
     new_node_val_mask = np.logical_and(val_mask, edge_contains_new_node_mask)
     new_node_test_mask = np.logical_and(test_mask, edge_contains_new_node_mask)
+
+    if shuffle_order:
+        shuffle_index = np.random.permutation(train_mask.sum())
+        node_interact_times[train_mask] = node_interact_times[train_mask][shuffle_index]
+        sorted_index = np.argsort(node_interact_times[train_mask])
+        src_node_ids[train_mask] = src_node_ids[train_mask][sorted_index]
+        dst_node_ids[train_mask] = dst_node_ids[train_mask][sorted_index]
+        node_interact_times[train_mask] = node_interact_times[train_mask][sorted_index]
+        labels[train_mask] = labels[train_mask][sorted_index]
+        # Do not shuffle edge_raw_features, since they are 0.0 for all the synthetic datasets anyway
+        # edge_raw_features[train_mask] = edge_raw_features[train_mask][sorted_index]
+        print("Training data is shuffled")
+
+    if arange_timestamps:
+        # Randomize timestamps to avoid time leakage
+        node_interact_times = np.arange(len(node_interact_times))
+        print("Timestamps are aranged")
+
+    full_data = Data(src_node_ids=src_node_ids, dst_node_ids=dst_node_ids, node_interact_times=node_interact_times, edge_ids=edge_ids, labels=labels)
+
+    train_data = Data(src_node_ids=src_node_ids[train_mask], dst_node_ids=dst_node_ids[train_mask],
+                      node_interact_times=node_interact_times[train_mask],
+                      edge_ids=edge_ids[train_mask], labels=labels[train_mask])
 
     # validation and test data
     val_data = Data(src_node_ids=src_node_ids[val_mask], dst_node_ids=dst_node_ids[val_mask],
