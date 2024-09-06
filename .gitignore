@@ -110,3 +110,5 @@ ENV/
 # data
 .vscode/
 processed_data/*/*
+saved_models/*/*
+saved_results/*/*
