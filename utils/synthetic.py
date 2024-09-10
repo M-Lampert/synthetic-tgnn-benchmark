@@ -108,7 +108,7 @@ def create_triadic(
             for src_2, dst_2 in edge_index_t.T:
                 if dst_1 == src_2:
                     edges.append((dst_2, src_1))
-        if edges:  # If there are no triangles, we don't need to check for existing ones
+        if len(edges) > 0:  # If there are no triangles, we don't need to check for existing ones
             edges = torch.tensor(edges).T
             # Add a small amount of noise (random edges) otherwise the pattern would be periodic
             noise_edges = erdos_renyi_graph(n, p_noise)
@@ -117,10 +117,11 @@ def create_triadic(
             for edge in edges.T:
                 if not (edge == edge_index_t_minus_2.T).all(dim=1).any():
                     new_edges.append(edge.tolist())
-            new_edges = torch.tensor(new_edges).T.unique(dim=1)
-            t = torch.cat([t, torch.full((new_edges.size(1),), i + 3)])
-            edge_index = torch.cat([edge_index, new_edges], dim=1)
-            n_edges.append(new_edges.size(1))
+            if len(new_edges) > 0:
+                new_edges = torch.tensor(new_edges).T.unique(dim=1)
+                t = torch.cat([t, torch.full((new_edges.size(1),), i + 3)])
+                edge_index = torch.cat([edge_index, new_edges], dim=1)
+                n_edges.append(new_edges.size(1))
 
     return Data(edge_index=edge_index, time=t)
 
@@ -152,14 +153,14 @@ def create_bipartite(
     for i in range(r_1):
         for j in range(r_2):
             edge_probs = torch.zeros((r_1 + r_2), (r_1 + r_2))
-            edge_probs[i, j + 5] = p_init
+            edge_probs[i, j + r_1] = p_init
             for _ in range(growth_steps + 1):
                 curr_edge_index = stochastic_blockmodel_graph(
                     block_sizes, edge_probs, directed=True
                 )
                 edge_index = torch.cat([edge_index, curr_edge_index], dim=1)
                 t = torch.cat([t, torch.full((curr_edge_index.size(1),), curr_t)])
-                edge_probs[i, j + 5] += p_inc
+                edge_probs[i, j + r_1] += p_inc
                 curr_t += 1
 
     return Data(edge_index=edge_index, time=t)
