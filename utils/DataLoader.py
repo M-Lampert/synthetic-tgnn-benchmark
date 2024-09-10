@@ -64,7 +64,7 @@ class Data:
         self.num_unique_nodes = len(self.unique_node_ids)
 
 
-def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float, shuffle_order: bool = False, arange_timestamps: bool = False):
+def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float, shuffle_order: bool, arange_timestamps: bool):
     """
     generate data for link prediction task (inductive & transductive settings)
     :param dataset_name: str, dataset name
