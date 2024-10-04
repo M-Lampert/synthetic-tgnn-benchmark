@@ -2,7 +2,7 @@
 
 GPU="0"
 datasets=("periodic" "burst" "bipartite" "triadic")
-models=("JODIE") # "DyRep" "TGAT" "TGN" "CAWN" "TCL" "GraphMixer" "DyGFormer")
+models=("JODIE" "DyRep" "TGAT" "TGN" "CAWN" "TCL" "GraphMixer" "DyGFormer")
 shuffle_orders=("" "--shuffle_order")
 arange_timestamps=("" "--arange_timestamp")
 

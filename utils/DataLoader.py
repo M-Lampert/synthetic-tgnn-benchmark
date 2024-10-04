@@ -140,15 +140,12 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
     new_node_test_mask = np.logical_and(test_mask, edge_contains_new_node_mask)
 
     if shuffle_order:
-        shuffle_index = np.random.permutation(train_mask.sum())
-        node_interact_times[train_mask] = node_interact_times[train_mask][shuffle_index]
-        sorted_index = np.argsort(node_interact_times[train_mask])
-        src_node_ids[train_mask] = src_node_ids[train_mask][sorted_index]
-        dst_node_ids[train_mask] = dst_node_ids[train_mask][sorted_index]
-        node_interact_times[train_mask] = node_interact_times[train_mask][sorted_index]
-        labels[train_mask] = labels[train_mask][sorted_index]
+        shuffle_index = np.random.permutation(node_interact_times.shape[0])
+        src_node_ids = src_node_ids[shuffle_index]
+        dst_node_ids = dst_node_ids[shuffle_index]
+        labels = labels[shuffle_index]
         # Do not shuffle edge_raw_features, since they are 0.0 for all the synthetic datasets anyway
-        # edge_raw_features[train_mask] = edge_raw_features[train_mask][sorted_index]
+        # edge_raw_features = edge_raw_features[shuffle_index]
         print("Training data is shuffled")
 
     if arange_timestamps:

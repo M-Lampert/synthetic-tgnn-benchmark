@@ -26,7 +26,7 @@ def save_graph_to_DG_data(g: Data, filename: str):
 
 
 def create_periodic(
-    n: int = 250, p: float = 0.03, r: int = 51, poisson_lambda: int = 1
+    n: int = 250, p: float = 0.03, r: int = 50, poisson_lambda: int = 1
 ) -> Data:
     """
     Creates a periodic graph using the Erdos-Renyi model with G(n, p).
@@ -59,71 +59,35 @@ def create_periodic(
 
 
 def create_triadic(
-    n: int = 250, p_init: float = 0.003, p_noise: float = 0.00025, r: int = 50
+    n: int = 250, n_triangles: int = 10000, poisson_lambda: int = 5
 ) -> Data:
     """
-    Creates a triadic graph using the Erdos-Renyi model with G(n, p_init) in
-    the first two steps. In the following steps, the graph is updated by
-    closing triangles and adding edges with probability `p_noise`.
+    Creates a triadic graph by randomly sampling a triplet of nodes and
+    connecting them all in the next 3 consecutive time steps. Poisson distribution
+    is used to sample the pause time between one triangle and the next.
 
     Args:
         n (int): Number of nodes.
-        p_init (float): Probability of an edge between two nodes in the initial
-            graph.
-        p_noise (float): Probability of adding an edge in the following steps.
-        r (int): Number of repetitions.
+        n_triangles (int): Number of triangles to sample.
+        poisson_lambda (int): Poisson distribution parameter.
     """
-    n_edges = []
+    triplets = torch.randint(n, (n_triangles, 3))
+    cum_pause_times = torch.cumsum(
+        torch.poisson(torch.ones(n_triangles) * poisson_lambda), dim=0
+    ).int()
 
-    edge_index_1 = erdos_renyi_graph(n, p_init)
-    n_edges.append(edge_index_1.shape[1])
-    edge_index_2 = erdos_renyi_graph(n, p_init)
-    n_edges.append(edge_index_2.shape[1])
-    t = torch.cat(
-        [
-            torch.full((edge_index_1.shape[1],), 0),
-            torch.full((edge_index_2.shape[1],), 1),
-        ]
-    )
-    edge_index = torch.cat([edge_index_1, edge_index_2], dim=1)
+    edge_index_1 = torch.stack([triplets[:, 0], triplets[:, 1]])
+    t_1 = cum_pause_times
+    edge_index_2 = torch.stack([triplets[:, 1], triplets[:, 2]])
+    t_2 = cum_pause_times + 1
+    edge_index_3 = torch.stack([triplets[:, 2], triplets[:, 0]])
+    t_3 = cum_pause_times + 2
 
-    # Add the third step without loop because we need three
-    # consecutive steps to check for existing triangles
-    new_edges = []
-    for src_1, dst_1 in edge_index_1.T:
-        for src_2, dst_2 in edge_index_2.T:
-            if dst_1 == src_2:
-                new_edges.append((dst_2, src_1))
-    t = torch.cat([t, torch.full((len(new_edges),), 2)])
-    new_edges = torch.tensor(new_edges).T
-    edge_index = torch.cat([edge_index, new_edges], dim=1)
-    n_edges.append(new_edges.size(1))
+    edge_index = torch.stack([edge_index_1, edge_index_2, edge_index_3], dim=-1).reshape(2, -1)
+    t = torch.stack([t_1, t_2, t_3], dim=-1).reshape(-1)
+    sorted_idx = torch.argsort(t)
 
-    for i in range(r - 3):
-        edge_index_t_minus_2 = edge_index[:, t == i]
-        edge_index_t_minus_1 = edge_index[:, t == i + 1]
-        edge_index_t = edge_index[:, t == i + 2]
-        edges = []
-        for src_1, dst_1 in edge_index_t_minus_1.T:
-            for src_2, dst_2 in edge_index_t.T:
-                if dst_1 == src_2:
-                    edges.append((dst_2, src_1))
-        if len(edges) > 0:  # If there are no triangles, we don't need to check for existing ones
-            edges = torch.tensor(edges).T
-            # Add a small amount of noise (random edges) otherwise the pattern would be periodic
-            noise_edges = erdos_renyi_graph(n, p_noise)
-            edges = torch.cat([edges, noise_edges], dim=1)
-            new_edges = []
-            for edge in edges.T:
-                if not (edge == edge_index_t_minus_2.T).all(dim=1).any():
-                    new_edges.append(edge.tolist())
-            if len(new_edges) > 0:
-                new_edges = torch.tensor(new_edges).T.unique(dim=1)
-                t = torch.cat([t, torch.full((new_edges.size(1),), i + 3)])
-                edge_index = torch.cat([edge_index, new_edges], dim=1)
-                n_edges.append(new_edges.size(1))
-
-    return Data(edge_index=edge_index, time=t)
+    return Data(edge_index=edge_index[:, sorted_idx], time=t[sorted_idx])
 
 
 def create_bipartite(
