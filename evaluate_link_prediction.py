@@ -76,8 +76,8 @@ if __name__ == "__main__":
             set_random_seed(seed=run)
 
             args.seed = run
-            args.load_model_name = f'{args.model_name}_seed{args.seed}' + ("_aranged_timestamps" if args.arange_timestamps else "") + ("_shuffle_order" if args.shuffle_order else "")
-            args.save_result_name = f'{args.negative_sample_strategy}_negative_sampling_{args.model_name}_seed{args.seed}'  + ("_aranged_timestamps" if args.arange_timestamps else "") + ("_shuffle_order" if args.shuffle_order else "")
+            args.load_model_name = f'{args.model_name}_sampling{args.negative_sample_strategy}_seed{args.seed}' + ("_aranged_timestamps" if args.arange_timestamps else "") + ("_shuffle_order" if args.shuffle_order else "")
+            args.save_result_name = f'{args.model_name}_sampling{args.negative_sample_strategy}_seed{args.seed}'  + ("_aranged_timestamps" if args.arange_timestamps else "") + ("_shuffle_order" if args.shuffle_order else "")
 
             # set up logger
             logging.basicConfig(level=logging.INFO)

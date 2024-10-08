@@ -150,7 +150,7 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
 
     if arange_timestamps:
         # Randomize timestamps to avoid time leakage
-        node_interact_times = np.arange(len(node_interact_times))
+        node_interact_times = np.unique(node_interact_times, return_inverse=True)[1]
         print("Timestamps are aranged")
 
     full_data = Data(src_node_ids=src_node_ids, dst_node_ids=dst_node_ids, node_interact_times=node_interact_times, edge_ids=edge_ids, labels=labels)
